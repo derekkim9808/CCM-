@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
 import pandas as pd
 
 st.set_page_config(page_title="고객 문의 대응 시스템", page_icon="💬", layout="wide")
@@ -123,13 +123,20 @@ if analyze:
 
     with st.spinner("AI 분석 중..."):
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("models/gemini-1.5-flash")
-            resp = model.generate_content(prompt)
-            result = resp.text
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            resp = requests.post(url, json=payload, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            result = data["candidates"][0]["content"]["parts"][0]["text"]
             st.session_state["result"] = result
+        except requests.exceptions.HTTPError as e:
+            st.error(f"API 오류: {resp.status_code} - {resp.text}")
+            st.stop()
         except Exception as e:
-            st.error(f"API 오류: {e}")
+            st.error(f"오류: {e}")
             st.stop()
 
 if "result" in st.session_state:
