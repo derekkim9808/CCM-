@@ -1,14 +1,12 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 import pandas as pd
-import os
 
 st.set_page_config(page_title="고객 문의 대응 시스템", page_icon="💬", layout="wide")
 
 st.markdown("""
 <style>
 .result-box { background:#f8f9fa; border-left:4px solid #4A90D9; padding:1rem; border-radius:4px; margin:0.5rem 0; }
-.step-box   { background:#fff; border:1px solid #e0e0e0; padding:0.75rem 1rem; border-radius:6px; margin:0.3rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -16,7 +14,9 @@ st.markdown("""
 with st.sidebar:
     st.title("⚙️ 설정")
 
-    api_key = st.secrets.get("GEMINI_API_KEY", "") if hasattr(st, "secrets") else ""
+    api_key = ""
+    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+        api_key = st.secrets["GEMINI_API_KEY"]
     if not api_key:
         api_key = st.text_input("Google Gemini API Key", type="password",
                                  help="https://aistudio.google.com 에서 무료 발급")
@@ -129,9 +129,11 @@ if analyze:
 
     with st.spinner("AI 분석 중..."):
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-1.5-flash-latest")
-            resp = model.generate_content(prompt)
+            client = genai.Client(api_key=api_key)
+            resp = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
             result = resp.text
             st.session_state["result"] = result
         except Exception as e:
