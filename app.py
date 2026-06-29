@@ -1,14 +1,8 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 import pandas as pd
 
 st.set_page_config(page_title="고객 문의 대응 시스템", page_icon="💬", layout="wide")
-
-st.markdown("""
-<style>
-.result-box { background:#f8f9fa; border-left:4px solid #4A90D9; padding:1rem; border-radius:4px; margin:0.5rem 0; }
-</style>
-""", unsafe_allow_html=True)
 
 # ── 사이드바 ──────────────────────────────────────────────────────
 with st.sidebar:
@@ -129,11 +123,9 @@ if analyze:
 
     with st.spinner("AI 분석 중..."):
         try:
-            client = genai.Client(api_key=api_key)
-            resp = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt
-            )
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("models/gemini-1.5-flash")
+            resp = model.generate_content(prompt)
             result = resp.text
             st.session_state["result"] = result
         except Exception as e:
