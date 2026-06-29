@@ -1,7 +1,7 @@
 import streamlit as st
-import anthropic
+import google.generativeai as genai
 import pandas as pd
-import io
+import os
 
 st.set_page_config(page_title="고객 문의 대응 시스템", page_icon="💬", layout="wide")
 
@@ -9,19 +9,17 @@ st.markdown("""
 <style>
 .result-box { background:#f8f9fa; border-left:4px solid #4A90D9; padding:1rem; border-radius:4px; margin:0.5rem 0; }
 .step-box   { background:#fff; border:1px solid #e0e0e0; padding:0.75rem 1rem; border-radius:6px; margin:0.3rem 0; }
-.badge      { display:inline-block; padding:2px 10px; border-radius:12px; font-size:0.8rem; font-weight:600; }
-.badge-high { background:#FFE4E4; color:#C0392B; }
-.badge-mid  { background:#FFF3CD; color:#856404; }
-.badge-low  { background:#D4EDDA; color:#155724; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── 사이드바: 설정 & 데이터 업로드 ──────────────────────────────
+# ── 사이드바 ──────────────────────────────────────────────────────
 with st.sidebar:
     st.title("⚙️ 설정")
 
-    api_key = st.text_input("Anthropic API Key", type="password",
-                             help="https://console.anthropic.com 에서 발급")
+    api_key = st.secrets.get("GEMINI_API_KEY", "") if hasattr(st, "secrets") else ""
+    if not api_key:
+        api_key = st.text_input("Google Gemini API Key", type="password",
+                                 help="https://aistudio.google.com 에서 무료 발급")
 
     st.divider()
     st.subheader("📂 과거 문의 데이터")
@@ -79,7 +77,7 @@ col1, col2 = st.columns([1, 1], gap="large")
 with col1:
     st.subheader("📝 문의 등록")
     inquiry = st.text_area("문의 내용", height=160,
-                            placeholder="예) 지난달 구매한 제품의 환불을 요청드립니다. 제품이 설명과 다르게 동작합니다.\n\n⚠️ 고객 실명·고객번호 등 개인정보는 마스킹 처리 후 입력해 주세요.")
+                            placeholder="예) 지난달 구매한 제품의 환불을 요청드립니다.\n\n⚠️ 고객 실명·고객번호 등 개인정보는 마스킹 처리 후 입력해 주세요.")
     c1, c2 = st.columns(2)
     with c1:
         category = st.selectbox("카테고리 (선택)", ["", "환불/반품", "배송 문의", "제품 결함",
@@ -99,7 +97,7 @@ with col2:
 # ── 분석 실행 ────────────────────────────────────────────────────
 if analyze:
     if not api_key:
-        st.error("사이드바에서 Anthropic API Key를 입력해 주세요.")
+        st.error("사이드바에서 Gemini API Key를 입력해 주세요.")
         st.stop()
     if not inquiry.strip():
         st.warning("문의 내용을 입력해 주세요.")
@@ -131,13 +129,10 @@ if analyze:
 
     with st.spinner("AI 분석 중..."):
         try:
-            client = anthropic.Anthropic(api_key=api_key)
-            resp = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1500,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            result = resp.content[0].text
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            resp = model.generate_content(prompt)
+            result = resp.text
             st.session_state["result"] = result
         except Exception as e:
             st.error(f"API 오류: {e}")
