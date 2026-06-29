@@ -123,7 +123,7 @@ if analyze:
 
     with st.spinner("AI 분석 중..."):
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}]
             }
